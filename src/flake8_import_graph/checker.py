@@ -75,11 +75,14 @@ class ImportGraphChecker:
         for item in options.deny_imports:
             src, dest = item.split('=', 1)
             cls.denied_imports.append((src.split('.'), dest.split('.')))
+        cls.exemptions = [src.split('.') for src in options.allow_all_imports]
 
     def run(self):
         errors = []
-        visitor = ImportVisitor(self.module, errors, self.denied_imports)
-        visitor.visit(self.tree)
+        if not any(is_prefix(exemption, self.module.split('.'))
+                   for exemption in self.exemptions):
+            visitor = ImportVisitor(self.module, errors, self.denied_imports)
+            visitor.visit(self.tree)
         yield from errors
 
     @classmethod
@@ -88,5 +91,11 @@ class ImportGraphChecker:
             '--deny-imports', type='str', comma_separated_list=True,
             default=[], parse_from_config=True,
             help='A list of denied imports like '
-                 '`mypkg.where=other_pkg.disallowed_sub_package`.',
+                 '`mypkg.where=other_pkg.disallowed_sub_package`.'
+        )
+        parser.add_option(
+            '--allow-all-imports', type='str', comma_separated_list=True,
+            default=[], parse_from_config=True,
+            help='A list of modules exempted from import denials like '
+                 '`mypkg.where.exempted_module`.'
         )

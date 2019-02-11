@@ -1,0 +1,6 @@
+[flake8]
+deny-imports =
+    file1=pkg
+    pkg=file1
+allow-all-imports =
+    pkg.special

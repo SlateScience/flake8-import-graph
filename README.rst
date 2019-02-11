@@ -20,6 +20,10 @@ Configure it, by putting ``.flake8`` file in the package root:
         myapp.models=myapp.controllers
         # Don't allow controllers to import sqlalchemy directly
         myapp.controllers=sqlalchemy
+    allow-all-imports =
+        # In spite of the above, allow myapp.models.special to import anything
+        myapp.models.special
+        # (many entries are allowed)
 
 
 License
