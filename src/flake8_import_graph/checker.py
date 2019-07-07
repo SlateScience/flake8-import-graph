@@ -15,6 +15,9 @@ class ImportVisitor(ast.NodeVisitor):
         mod_path = current_module.split('.')
         self.mod_path = mod_path
         self.denied = [v for k, v in denied if is_prefix(k, mod_path)]
+        self.in_package_allowed = [
+            k for k, v in denied if is_prefix(k, mod_path)
+        ]
 
     def visit_Import(self, node):  # noqa: N802
         for name in node.names:
@@ -48,9 +51,12 @@ class ImportVisitor(ast.NodeVisitor):
 
     def not_allowed(self, name):
         dotted = name.split('.')
-        for item in self.denied:
-            if is_prefix(item, dotted):
-                return True
+        return (
+            any(is_prefix(item, dotted) for item in self.denied)
+            and
+            not any(is_prefix(item, dotted) for item in self.in_package_allowed)
+        )
+
 
 class ImportGraphChecker:
     name = "import-graph"
