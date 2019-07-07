@@ -9,7 +9,7 @@ def is_prefix(a, b):
 
 class ImportVisitor(ast.NodeVisitor):
 
-    def __init__(self, current_module, dest, denied):
+    def __init__(self, current_module, dest, denied, relative_imports_allowed):
         self.dest = dest
         self.current_module = current_module
         mod_path = current_module.split('.')
@@ -18,6 +18,9 @@ class ImportVisitor(ast.NodeVisitor):
         self.in_package_allowed = [
             k for k, v in denied if is_prefix(k, mod_path)
         ]
+        self.relative_allowed = any(
+            is_prefix(k, mod_path) for k in relative_imports_allowed
+        )
 
     def visit_Import(self, node):  # noqa: N802
         for name in node.names:
@@ -29,6 +32,8 @@ class ImportVisitor(ast.NodeVisitor):
 
     def visit_ImportFrom(self, node):  # noqa: N802
         if node.level > 0:
+            if self.relative_allowed:
+                return
             mod_path = self.mod_path[:-node.level]
             if node.module:
                 mod_path.append(node.module)
@@ -81,10 +86,16 @@ class ImportGraphChecker:
         for item in options.deny_imports:
             src, dest = item.split('=', 1)
             cls.denied_imports.append((src.split('.'), dest.split('.')))
+        cls.relative_imports_allowed = [
+            pkg.split('.') for pkg in options.allow_relative_imports
+        ]
 
     def run(self):
         errors = []
-        visitor = ImportVisitor(self.module, errors, self.denied_imports)
+        visitor = ImportVisitor(
+            self.module, errors,
+            self.denied_imports, self.relative_imports_allowed
+        )
         visitor.visit(self.tree)
         yield from errors
 
@@ -95,4 +106,10 @@ class ImportGraphChecker:
             default=[], parse_from_config=True,
             help='A list of denied imports like '
                  '`mypkg.where=other_pkg.disallowed_sub_package`.',
+        )
+        parser.add_option(
+            '--allow-relative-imports', type='str', comma_separated_list=True,
+            default=[], parse_from_config=True,
+            help='A list of packages where relative imports are allowed, like '
+                 '`mypkg.where.clean_module`.',
         )
