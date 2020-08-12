@@ -2,5 +2,7 @@
 deny-imports =
     file1=pkg
     pkg=file1
+    pkg=pkg.special
+    pkg.pkg2=pkg
 allow-all-imports =
     pkg.special

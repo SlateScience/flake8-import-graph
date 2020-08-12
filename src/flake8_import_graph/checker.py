@@ -16,7 +16,8 @@ class ImportVisitor(ast.NodeVisitor):
         self.mod_path = mod_path
         self.denied = [v for k, v in denied if is_prefix(k, mod_path)]
         self.in_package_allowed = [
-            k for k, v in denied if is_prefix(k, mod_path)
+            # With rule "a.b.c=a.b", allow imports from a.b.c within a.b.c
+            k for k, v in denied if is_prefix(k, mod_path) and is_prefix(v, k)
         ]
         self.relative_allowed = any(
             is_prefix(k, mod_path) for k in relative_imports_allowed
